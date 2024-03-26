@@ -98,16 +98,4 @@ module.exports = {
   projectConfig,
   plugins,
   modules,
-  paymentProviders: [
-    {
-      id: "payhere",
-      config: {
-        merchant_id: "1226131",
-        merchant_secret: "MTQ0MTEyNjMzOTQyNTgzOTI5ODEyMDY3MTI0NzAwMzYzNjI0Mjk4NA==",
-      },
-      pluginOptions: {
-        path: path.resolve(__dirname, "../src/services/payhere-payment/index.ts"),
-      },
-    },
-  ]
 };
