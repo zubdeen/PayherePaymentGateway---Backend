@@ -1,7 +1,7 @@
 import { PaymentService } from "medusa-interfaces"
 
 class CODPaymentService extends PaymentService {
-  static identifier = "Cash On Delivery"
+  static identifier = "Cash on Delivery"
 
   constructor() {
     super()

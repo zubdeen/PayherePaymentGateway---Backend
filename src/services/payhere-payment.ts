@@ -4,12 +4,12 @@ import md5 from 'crypto-js/md5';
 import { MedusaError } from "medusa-core-utils";
 
 class PayherePaymentService extends AbstractPaymentProcessor {
-    static identifier = "Payhere"
+    static identifier = "Online Payment"
     static merchantSecret  = process.env.PAYHERE_MERCHANT_SECRET;
     static merchantId      = process.env.PAYHERE_MERCHANT_ID;
     static appId  = process.env.PAYHERE_APP_SECRET;
     static appSecret      = process.env.PAYHERE_APP_ID;
-  
+
     protected paymentProviderService: PaymentProviderService
     // ...
     constructor(container, options) {
@@ -25,9 +25,11 @@ class PayherePaymentService extends AbstractPaymentProcessor {
     async getPaymentStatus(
         paymentSessionData: Record<string, unknown>
       ): Promise<PaymentSessionStatus> {
+        console.log("getPaymentStatus")
+        console.log(paymentSessionData)
         return await paymentSessionData?.status as PaymentSessionStatus
       }
-  
+
     /**
      * Retrieves payment
      * @param {object} data - the data of the payment to retrieve
@@ -35,10 +37,10 @@ class PayherePaymentService extends AbstractPaymentProcessor {
      */
     async retrievePayment(
         paymentSessionData: Record<string, unknown>
-      ): Promise<Record<string, unknown> | PaymentProcessorError> {  
+      ): Promise<Record<string, unknown> | PaymentProcessorError> {
         return paymentSessionData
       }
-  
+
     /**
      * Updates the payment status to authorized
      * @returns {Promise<{ status: string, data: object }>} result with data and status
@@ -60,17 +62,21 @@ class PayherePaymentService extends AbstractPaymentProcessor {
               }
         }
         try {
-          if(!paymentSessionData?.payment_id){
+          if("payment_id" in paymentSessionData &&
+          "status" in paymentSessionData &&
+          paymentSessionData.status === PaymentSessionStatus.AUTHORIZED){
+            console.log( "authorizePayment")
+            console.log(paymentSessionData)
             return {
-                status: PaymentSessionStatus.REQUIRES_MORE,
-                data: {
-                  id: paymentSessionData.id,
-                  ...paymentSessionData
-                }
+              status: PaymentSessionStatus.AUTHORIZED,
+              data: {
+                id: paymentSessionData.id,
+                ...paymentSessionData
               }
+            }
           }
           return {
-            status: PaymentSessionStatus.AUTHORIZED,
+            status: PaymentSessionStatus.REQUIRES_MORE,
             data: {
               id: paymentSessionData.id,
               ...paymentSessionData
@@ -82,7 +88,7 @@ class PayherePaymentService extends AbstractPaymentProcessor {
           }
         }
       }
-  
+
     /**
      * Noop, simply returns existing data.
      * @param {object} sessionData - payment session data.
@@ -94,7 +100,7 @@ class PayherePaymentService extends AbstractPaymentProcessor {
         void |
         PaymentProcessorError |
         PaymentProcessorSessionResponse
-      > { 
+      > {
         try {
             if(!PayherePaymentService.merchantId || !PayherePaymentService.merchantSecret){
                 throw new Error("Unauthorized")
@@ -107,9 +113,9 @@ class PayherePaymentService extends AbstractPaymentProcessor {
                 "An error occurred in updatePayment",
                 error
               )
-        } 
+        }
       }
-  
+
     /**
      * @param {object} sessionData - payment session data.
      * @param {object} update - payment session update data.
@@ -129,12 +135,10 @@ class PayherePaymentService extends AbstractPaymentProcessor {
             const paymentSession = await this.paymentProviderService.retrieveSession(sessionId)
             const hash = this.generateHash(paymentSession, paymentSession.cart_id);
             return {
-                session_data: {
-                    id: "payhere_"+paymentSession.cart_id,
-                    hash,
-                    ...paymentSession.data,
-                    ...data
-                },
+              id: "payhere_"+paymentSession.cart_id,
+              hash,
+              ...paymentSession.data,
+              ...data
             }
         } catch (error) {
             return this.buildError(
@@ -157,9 +161,9 @@ class PayherePaymentService extends AbstractPaymentProcessor {
                 "An error occurred",
                 error
               )
-        } 
+        }
       }
-  
+
     /**
      * Updates the payment status to captured
      * @param {object} paymentData - payment method data from cart
@@ -168,7 +172,7 @@ class PayherePaymentService extends AbstractPaymentProcessor {
     async capturePayment() {
       return { status: "captured" }
     }
-  
+
     /**
      * Noop, resolves to allow manual refunds.
      * @param {object} payment - payment method data from cart
@@ -181,10 +185,12 @@ class PayherePaymentService extends AbstractPaymentProcessor {
 
         try {
             if(!PayherePaymentService.merchantId || !PayherePaymentService.merchantSecret ||
-                !PayherePaymentService.appId || !PayherePaymentService.appSecret){
+                !PayherePaymentService.appId || !PayherePaymentService.appSecret ||
+                !("payment_id" in paymentSessionData)){
                 throw new Error("Unauthorized")
             }
-            const paymentId = paymentSessionData.id  
+            throw new Error("Method not implemented.")
+            const paymentId = paymentSessionData?.payment_id
             return {
               id: paymentId
             }
@@ -195,7 +201,7 @@ class PayherePaymentService extends AbstractPaymentProcessor {
               )
         }
       }
-  
+
     /**
      * Updates the payment status to cancled
      * @returns {object} object with canceled status
@@ -204,10 +210,12 @@ class PayherePaymentService extends AbstractPaymentProcessor {
         paymentSessionData: Record<string, unknown>
       ): Promise<Record<string, unknown> | PaymentProcessorError> {
         try {
-            if(!PayherePaymentService.merchantId || !PayherePaymentService.merchantSecret){
+            if(!PayherePaymentService.merchantId || !PayherePaymentService.merchantSecret ||
+                !("payment_id" in paymentSessionData)){
                 throw new Error("Unauthorized")
             }
-            const paymentId = paymentSessionData.id  
+            throw new Error("Method not implemented.")
+            const paymentId = paymentSessionData?.payment_id;
             return {
                 id: paymentId
               }
@@ -219,9 +227,9 @@ class PayherePaymentService extends AbstractPaymentProcessor {
         }
       }
 
-      convertToDecimal(amount: number): number{
-        return Math.floor(amount) / 100
-      }
+    convertToDecimal(amount: number): number{
+      return Math.floor(amount) / 100
+    }
 
     async initiatePayment(
     context: PaymentProcessorContext
@@ -262,7 +270,7 @@ class PayherePaymentService extends AbstractPaymentProcessor {
             ? e.detail
             : e.message ?? "",
         }
-    } 
+    }
 
     generateHash(paymentSession: PaymentSession | PaymentProcessorContext, orderId: String): String{
         const amount = this.convertToDecimal(paymentSession.amount);
@@ -282,14 +290,14 @@ class PayherePaymentService extends AbstractPaymentProcessor {
         }
         const amountFormated  = parseFloat( paymentSession.data.amount.toString() )
                                 .toLocaleString( 'en-us', { minimumFractionDigits : 2 } ).replace(',', '');
-        
-        const hashedSecret = (md5(PayherePaymentService.merchantSecret)).toString().toUpperCase();                        
+
+        const hashedSecret = (md5(PayherePaymentService.merchantSecret)).toString().toUpperCase();
         const hash = md5(
-            PayherePaymentService.merchantId + 
-            paymentSession.cart_id + 
-            amountFormated + 
-            "LKR" + 
-            statusCode + 
+            PayherePaymentService.merchantId +
+            paymentSession.cart_id +
+            amountFormated +
+            "LKR" +
+            statusCode +
             hashedSecret).toString().toUpperCase();
 
         return hash === mdfSig;
