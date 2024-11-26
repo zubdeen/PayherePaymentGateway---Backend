@@ -32,7 +32,7 @@
     "@medusajs/event-bus-redis": "^1.8.11",
     "@medusajs/file-local": "^1.0.3",
     "@medusajs/medusa-js": "^6.1.7",
-    "@medusajs/product": "^0.3.9",
+    "@medusajs/product": "^2.0.6",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
